@@ -57,12 +57,16 @@ const loginUser = async (req, res) => {
         const userPayload = {
             userName: userFromDB.userName
         }
-        const accessToken = jwt.sign(userPayload, accessTokenSecret, { expiresIn: '1h' })
-        const refreshToken = jwt.sign(userPayload, refreshTokenSecret, { expiresIn: '1d' })
+        const accessToken = jwt.sign({id: userFromDB.id}, accessTokenSecret, { expiresIn: '1h' })
+        const refreshToken = jwt.sign({id: userFromDB.id}, refreshTokenSecret, { expiresIn: '1d' })
         res.status(200).send({
             message: "Login success",
             accessToken: accessToken,
             refreshToken: refreshToken
+        })
+    } else {
+        res.status(400).send({
+            message: "Login fail. Wrong username or password"
         })
     } 
 }
