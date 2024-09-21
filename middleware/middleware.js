@@ -7,7 +7,7 @@ const jwtCheckMiddleware = (req, res, next) => {
         const token = authHeader.split(' ')[1]; // Tách access token từ chuỗi "Bearer {access_token}"
         console.log("token")
         console.log(token)
-        const secretKey = process.env.ACCESS_SECERT_KEY;
+        const secretKey = process.env.ACCESSS_TOKEN_SECERT_KEY;
         // Xác thực access token
         jwt.verify(token, secretKey, (err, decoded) => {
           if (err) {
@@ -22,4 +22,8 @@ const jwtCheckMiddleware = (req, res, next) => {
     } else {
       res.status(401).json({ message: 'Access token is missing' });
     }
+}
+
+module.exports = {
+  jwtCheckMiddleware
 }
