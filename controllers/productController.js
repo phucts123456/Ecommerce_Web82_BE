@@ -22,6 +22,22 @@ const getProduct = async (req, res) => {
     })
 }
 
+
+const getDetail = async (req, res) => {
+    const productId = req.params.id;
+    const isExistProduct = await productModel.findById({_id: productId}).populate("categoryId").populate("rate").exec(); 
+    if (isExistProduct) {
+        res.status(200).send({
+            message: 'Get product success',
+            data: isExistProduct
+        })
+    } else {
+        res.status(400).send({
+            message: 'This product is not available'
+        })
+    }
+}
+
 const createProduct = async (req, res) => {
     const productName = req.body.name;
     const productPrice = req.body.price;
@@ -54,5 +70,6 @@ const createProduct = async (req, res) => {
 
 module.exports = {
     getProduct,
-    createProduct
+    createProduct,
+    getDetail
 }
