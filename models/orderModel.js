@@ -38,6 +38,9 @@ const orderSchema = moongose.Schema({
     email: {
         type: String,
     },
+    orderDate: {
+        type: Date,
+    },
 });
 
 const orderModel = mongoose.model("orders", orderSchema);

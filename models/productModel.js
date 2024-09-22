@@ -26,15 +26,15 @@ const productSchema = moongose.Schema({
         ref : 'categories',
         require: true
     },
-    img: {
-        type: String,
-        require: true
-    },
     rate: [{
         type: mongoose.Types.ObjectId,
         ref : 'userProductRate',
         require: true
-    }]
+    }],
+    image: {
+        type: String,
+        require: true
+    }
 });
 
 const productModel = mongoose.model("products", productSchema);

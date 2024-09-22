@@ -11,6 +11,7 @@ const createOrder = async (req, res) => {
     const phoneNumber = req.body.phoneNumber;
     const email = req.body.email;
     const items = req.body.items;
+    console.log(items)
     const newOrder = {
         status: status,
         totalPrice: totalPrice,
@@ -19,6 +20,7 @@ const createOrder = async (req, res) => {
         city: city,
         phoneNumber: phoneNumber,
         email: email,
+        orderDate: (new Date()).toDateString(),
         userId: userId
     }
     orderModel.create(newOrder).then( async (newOrder) => {
