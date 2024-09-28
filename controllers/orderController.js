@@ -1,29 +1,56 @@
-const Order = require("../models/Order");
+const orderItemModel = require("../models/orderItemModel");
+const orderModel = require("../models/orderModel");
 
-// Tạo đơn hàng mới
 const createOrder = async (req, res) => {
-  try {
-    const { productid, status, totalPrice } = req.body;
-    const newOrder = new Order({
-      productid,
-      status,
-      totalPrice,
-    });
-    await newOrder.save();
-    res.status(201).json({
-      success: true,
-      message: "Đơn hàng đã được tạo thành công",
-      order: newOrder,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+    const status = req.body.status;
+    const userId = req.user.id;
+    const totalPrice = req.body.totalPrice;
+    const streetAddress = req.body.streetAddress;
+    const apartment = req.body.apartment;
+    const city = req.body.city;
+    const phoneNumber = req.body.phoneNumber;
+    const email = req.body.email;
+    const items = req.body.items;
+    console.log(items)
+    const newOrder = {
+        status: status,
+        totalPrice: totalPrice,
+        streetAddress: streetAddress,
+        apartment: apartment,
+        city: city,
+        phoneNumber: phoneNumber,
+        email: email,
+        orderDate: (new Date()).toDateString(),
+        userId: userId
+    }
+    orderModel.create(newOrder).then( async (newOrder) => {
+        for(let item of items) {
+            const newOrderItem = {
+                productId: item.productId,
+                price: item.price,
+                orderId: newOrder._id,
+                quantity: item.quantity,
+                subTotal: item.quantity * item.price
+            }
+            await orderItemModel.create(newOrderItem);
+        }
+        newOrder.items = items;
+        res.status(201).send({
+            message: "Create  order success",
+            data: newOrder
+        });
+    }).catch((error) =>{
+        res.status(400).send({
+            message: "Create  order fail",
+            data: error
+        });
+    });;
+}
 
 // Lấy danh sách tất cả các đơn hàng
 const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find();
+    const orders = await orderModel.find();
     res.status(200).json({
       success: true,
       orders,
@@ -36,7 +63,7 @@ const getAllOrders = async (req, res) => {
 // Lấy chi tiết đơn hàng theo ID
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await orderModel.findById(req.params.id);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -56,7 +83,7 @@ const getOrderById = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const order = await Order.findByIdAndUpdate(
+    const order = await orderModel.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true } // Trả về document đã cập nhật
@@ -82,7 +109,7 @@ const updateOrderStatus = async (req, res) => {
 // Xóa đơn hàng theo ID
 const deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findByIdAndDelete(req.params.id);
+    const order = await orderModel.findByIdAndDelete(req.params.id);
 
     if (!order) {
       return res.status(404).json({

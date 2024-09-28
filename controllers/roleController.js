@@ -1,4 +1,4 @@
-const roleModel = require("../models/Role");
+const roleModel = require("../models/roleModel");
 
 const addRole = (req, res) => {
   const { name, permissions } = req.body;
@@ -11,12 +11,12 @@ const addRole = (req, res) => {
     };
     roleModel.creare(newRole);
     res.status(201).send({
-      message: "Tạo vai trò thành công!",
+      message: "Create role success!",
       data: newRole,
     });
   } else {
     res.status(400).send({
-      message: "Tạo vai trò thất bại, Vai trò đã tồn tại",
+      message: "Create role fail, this role already existed",
     });
   }
 };

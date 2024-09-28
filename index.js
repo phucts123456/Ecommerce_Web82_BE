@@ -2,13 +2,19 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const router = require("./routes/index.js");
-
+const cloudinary = require('cloudinary').v2;
+const config = require("dotenv").config({ path: ".env" });
+var bodyParser = require('body-parser');
 const app = express();
 app.use(express.json());
-
+app.use(bodyParser.urlencoded({ extended: true }));
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+});
 app.use(cors());
 app.use(router);
-const config = require("dotenv").config({ path: ".env" });
 
 const connectDb = async () => {
   try {

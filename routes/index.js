@@ -1,18 +1,15 @@
-const userRouters = require("./userRoutes");
-const roleRouters = require("./roleRoutes");
-const productRoutes = require("./productRoutes");
-const orderRoutes = require("./orderRoutes.js")
-const inventoryRoutes = require("./inventoryRoutes");
-const categoryRoutes = require("./categoryRoutes");
-
-
+const userRouter = require("./user");
+const roleRouter = require("./role");
+const categoryRouter = require("./category");
 const router = require("express").Router();
-
-router.use(userRouters);
-router.use(roleRouters);
-router.use(productRoutes);
-router.use(orderRoutes);
-router.use(inventoryRoutes);
-router.use(categoryRoutes);
+const productRouter = require("./product");
+const rattingRouter = require("./ratting");
+const orderRouter = require("./order");
+router.use(userRouter);
+router.use(productRouter);
+router.use(roleRouter);
+router.use(categoryRouter);
+router.use(rattingRouter);
+router.use(orderRouter);
 
 module.exports = router;

@@ -26,9 +26,9 @@ const userSchema = moongose.Schema({
         type: String,
         require: true
     },
-    email:{
-      type:String,
-      require:true
+    isDelete: {
+        type: Boolean,
+        require: true
     }
 });
 

@@ -1,44 +1,38 @@
-const Category = require("../models/Category");
+const categoryModel = require("../models/categoryModel");
 
 // Tạo mới Category
 const createCategory = async (req, res) => {
-  try {
-    const { name } = req.body;
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: "Tên danh mục là bắt buộc",
+  const categoryName = req.body.name;
+  const isExistCategory = await categoryModel.findOne({name:categoryName}).exec();
+  if (!isExistCategory) {
+      const newCategory = {
+          name: categoryName
+      }
+      await categoryModel.create(newCategory);
+      res.status(201).send({
+          message: "Create category success",
+          data: newCategory
       });
-    }
-    const newCategory = new Category({ name });
-    await newCategory.save();
-    res.status(201).json({
-      success: true,
-      message: "Danh mục đã được tạo thành công",
-      category: newCategory,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+  } else {
+      res.status(400).send({
+          message: "Create category fail",
+      });
+  }   
+}
 
 // Lấy danh sách tất cả các Category
-const getAllCategories = async (req, res) => {
-  try {
-    const categories = await Category.find();
-    res.status(200).json({
-      success: true,
-      categories,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+const getCategory = async (req, res) => {
+  const totalItems = await categoryModel.find().exec();
+  res.status(200).send({
+      message: 'Get category success',
+      data: totalItems
+  });
+}
 
 // Lấy chi tiết Category theo ID
 const getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const category = await categoryModel.findById(req.params.id);
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -58,7 +52,7 @@ const getCategoryById = async (req, res) => {
 const updateCategoryName = async (req, res) => {
   try {
     const { name } = req.body;
-    const category = await Category.findByIdAndUpdate(
+    const category = await categoryModel.findByIdAndUpdate(
       req.params.id,
       { name },
       { new: true } // Trả về document đã cập nhật
@@ -84,7 +78,7 @@ const updateCategoryName = async (req, res) => {
 // Xóa Category theo ID
 const deleteCategory = async (req, res) => {
   try {
-    const category = await Category.findByIdAndDelete(req.params.id);
+    const category = await categoryModel.findByIdAndDelete(req.params.id);
 
     if (!category) {
       return res.status(404).json({
@@ -102,10 +96,19 @@ const deleteCategory = async (req, res) => {
   }
 };
 
+const getAllCategory = async (req, res) => {
+  const totalItems = await categoryModel.find().limit().exec();
+  res.status(200).send({
+      message: 'Get all category success',
+      data: totalItems
+  });
+}
+
 module.exports = {
   createCategory,
-  getAllCategories,
+  getCategory,
   getCategoryById,
   updateCategoryName,
   deleteCategory,
+  getAllCategory
 };
