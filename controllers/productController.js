@@ -1,6 +1,7 @@
 const productModel = require("../models/productModel"); // Import model sản phẩm
 const cloudinary = require('cloudinary').v2;
 const constants = require("../utils/constants");
+
 const getProduct = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
