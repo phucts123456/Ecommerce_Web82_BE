@@ -1,0 +1,1 @@
+exports.CONST_USER_PER_PAGE = 10
