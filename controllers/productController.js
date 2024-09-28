@@ -8,11 +8,9 @@ const getProduct = async (req, res) => {
   const limit = req.query.limit
   const pageSize = limit ? limit : constants.CONST_PRODUCT_PER_PAGE;
   const skip = (pageNumber - 1) * pageSize;
-  console.log("category")
-  console.log(category)
   let searchModel = searchKey !== '' &&  searchKey !== undefined
-      ? {name: { $regex: '.*' + searchKey + '.*' }, } 
-      : {}
+      ? {name: { $regex: '.*' + searchKey + '.*' }, isAvailable: true} 
+      : {isAvailable: true}
   if (category !== "" && category !== undefined) {
       const isExistCategory = await categoryModel.findOne({name: category}).exec();
       if(isExistCategory) {
@@ -55,7 +53,6 @@ const createProduct = async (req, res) => {
   try {
     const { name, price, isAvailable, quantity, description, categoryId, } =
       req.body;
-      console.log(req.body)
     // Kiểm tra nếu thiếu thông tin cần thiết
     if (!name || !price || !quantity || !description || !categoryId || !isAvailable) {
       return res
@@ -73,20 +70,28 @@ const createProduct = async (req, res) => {
     }, async (err, result) => {
       console.log(result)
         if(result) {
-           const newProduct = new productModel({
-            name,
-            price,
-            isAvailable,
-            quantity,
-            description,
-            categoryId,
-            image: result.secure_url
-          });
-          await productModel.create(newProduct);
-          res.status(201).json({
-            message :"crate product success",
-            data: newProduct
-          });
+          const isExistProduct = await productModel.findOne({name: name}).exec();
+          if (!isExistProduct) {
+            const newProduct = new productModel({
+              name,
+              price,
+              isAvailable,
+              quantity,
+              description,
+              categoryId,
+              image: result.secure_url
+            });
+            await productModel.create(newProduct);
+            res.status(201).json({
+              message :"Update product success",
+              data: newProduct
+            });
+          } else {
+            res.status(400).json({
+              message :"Create fail. Product existed",
+              data: newProduct
+            });
+          }
         }
         if (err) {
           res.status(201).json({
@@ -100,7 +105,7 @@ const createProduct = async (req, res) => {
     res
       .status(500)
       .json({
-        message: "Lỗi server khi tạo sản phẩm mới.",
+        message: "Error when create new product.",
         error: error.message,
       });
   }
@@ -121,7 +126,6 @@ const getAllProducts = async (req, res) => {
   }
 };
 
-// Lấy thông tin sản phẩm theo ID
 const getProductById = async (req, res) => {
   try {
     const product = await productModel.findById(req.params.id);
@@ -141,23 +145,56 @@ const getProductById = async (req, res) => {
   }
 };
 
-// Cập nhật sản phẩm
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, isAvailable, quantity, description, categoryid } =
-      req.body;
+    const { name, price, isAvailable, quantity, description, categoryId, image } = req.body;
 
-    const updatedProduct = await productModel.findByIdAndUpdate(
-      req.params.id,
-      { name, price, isAvailable, quantity, description, categoryid },
-      { new: true }
-    );
 
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Not found product" });
+    const file = req.file;
+    if (image !== undefined) {
+      const updateModel = { name, price, isAvailable, quantity, description, categoryId, image };
+      await productModel.findByIdAndUpdate(
+        req.params.id,
+        { name, price, isAvailable, quantity, description, categoryId, image }
+      );
+      return res.status(200).json({message:"Update product success", data: updateModel });
+    } else {
+      if (!file) {
+        return res.status(400).json({ error: 'No file was uploaded.' });
+      }
+      const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      cloudinary.uploader.upload(dataUrl, {
+          resource_type: 'auto'
+      }, async (err, result) => {
+        console.log(result)
+          if(result) {
+            const isExistProduct = await productModel.findById(req.params.id).exec();
+            if (isExistProduct) {
+              isExistProduct.name = name;
+              isExistProduct.price = price;
+              isExistProduct.isAvailable = isAvailable;
+              isExistProduct.quantity = quantity;
+              isExistProduct.description = description;
+              isExistProduct.categoryId = categoryId;
+              isExistProduct.image = result.secure_url;
+              await isExistProduct.save();
+              res.status(201).json({
+                message :"Update product success",
+                data: isExistProduct
+              });
+            } else {
+              res.status(400).json({
+                message :"Update fail. Product not existed"
+              });
+            }
+          }
+          if (err) {
+            res.status(201).json({
+              message :"create product fail. Upload image fail"
+            });
+          }
+      })
     }
-
-    res.status(200).json(updatedProduct);
   } catch (error) {
     res
       .status(500)
@@ -176,12 +213,11 @@ const deleteProduct = async (req, res) => {
     if (!deletedProduct) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm." });
     }
-
-    res.status(200).json({ message: "Đã xóa sản phẩm thành công!" });
+    res.status(200).json({ message: "Delete product success!" });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Lỗi server khi xóa sản phẩm.", error: error.message });
+      .json({ message: "Error when delete product.", error: error.message });
   }
 };
 

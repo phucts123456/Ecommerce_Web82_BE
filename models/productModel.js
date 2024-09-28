@@ -10,7 +10,7 @@ const productSchema = moongose.Schema({
         require: true
     },
     isAvailable: {
-        type: String,
+        type: Boolean,
         require: true
     },
     description: {
