@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const constants = require("./constants.js")
 const roleModel = require("../models/roleModel");
+const { default: mongoose } = require("mongoose");
 
 const register = async (req, res) => {
   const userName = req.body.userName;
@@ -35,11 +36,11 @@ const register = async (req, res) => {
     });
   } else {
     if (!roleFromDB) {
-      res.status(400).send({
+      return res.status(400).send({
         message: "Create user fail.Role is not existed",
       });
     } else {
-      res.status(400).send({
+      return res.status(400).send({
         message: "Create user fail.User is existed",
       });
     }
@@ -55,7 +56,7 @@ const loginUser = async (req, res) => {
     : false;
   if (userFromDB && isCorrectPassword) {
     if (userFromDB.isDelete === true) {
-      res.status(400).send({
+      return res.status(400).send({
         message:
           "Login fail. This user has been locked. " +
           "\n Please contact admin.",
@@ -72,13 +73,13 @@ const loginUser = async (req, res) => {
     const refreshToken = jwt.sign({ id: userFromDB.id }, refreshTokenSecret, {
       expiresIn: "1d",
     });
-    res.status(200).send({
+    return res.status(200).send({
       message: "Login success",
       accessToken: accessToken,
       refreshToken: refreshToken,
     });
   } else {
-    res.status(400).send({
+    return res.status(400).send({
       message: "Login fail. Wrong username or password",
     });
   }
@@ -86,7 +87,8 @@ const loginUser = async (req, res) => {
 
 const getUser = async (req, res) => {
   const userId = req.params.id;
-  const userFromDB = await userModel.findById(userId).populate("roleId").exec();
+  
+  const userFromDB = mongoose.isValidObjectId(userId) ? await userModel.findById(userId).populate("roleId").exec()  : null;
 
   if (userFromDB) {
     res.status(200).send({
@@ -111,7 +113,6 @@ const deleteUser = async (req, res) => {
       });
     }
 
-    // Đánh dấu người dùng là đã xóa thay vì xóa trực tiếp
     userFromDB.isDelete = true;
     await userFromDB.save();
 
@@ -126,10 +127,33 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const activeUser = async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const userFromDB = await userModel.findById(userId);
+    if (!userFromDB) {
+      return res.status(404).send({
+        message: "User not found",
+      });
+    }
+
+    userFromDB.isDelete = false;
+    await userFromDB.save();
+
+    res.status(200).send({
+      message: "User active successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to active user",
+      error: error.message,
+    });
+  }
+};
+
 const getAlluser = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
-  const role = req.query.role; // Thêm truy vấn cho vai trò nếu cần
   const limit = req.query.limit;
   const pageSize = limit ? limit : constants.CONST_USER_PER_PAGE; // Bạn cần xác định giá trị cho CONST_USER_PER_PAGE
   const skip = (pageNumber - 1) * pageSize;
@@ -139,22 +163,13 @@ const getAlluser = async (req, res) => {
       ? { userName: { $regex: ".*" + searchKey + ".*", $options: "i" } } // Tìm kiếm theo tên người dùng
       : {};
 
-  if (role !== "" && role !== undefined) {
-    const isExistRole = await roleModel.findOne({ name: role }).exec();
-    if (isExistRole) {
-      searchModel.roleId = isExistRole._id;
-    }
-  }
-
-  let total = await userModel.countDocuments(searchModel); 
+  let total = await userModel.countDocuments(); 
   let totalUsers = await userModel
     .find(searchModel)
     .skip(skip)
     .limit(pageSize)
     .populate("roleId")
     .exec();
-
-  const totalUser = totalUsers.length;
   const totalPage = Math.ceil(total / pageSize); 
   const data = {
     totalItems: total,
@@ -163,7 +178,7 @@ const getAlluser = async (req, res) => {
     items: totalUsers,
   };
 
-  res.status(200).send({
+  return res.status(200).send({
     message: "Get user All is success",
     data: data,
   });
@@ -174,5 +189,6 @@ module.exports = {
   getUser,
   loginUser,
   deleteUser,
-  getAlluser
+  getAlluser,
+  activeUser
 };

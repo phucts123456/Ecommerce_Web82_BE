@@ -1,5 +1,7 @@
+const { default: mongoose } = require("mongoose");
 const orderItemModel = require("../models/orderItemModel");
 const orderModel = require("../models/orderModel");
+const constants = require("../utils/constants");
 
 const createOrder = async (req, res) => {
     const status = req.body.status;
@@ -47,33 +49,62 @@ const createOrder = async (req, res) => {
     });;
 }
 
-// Lấy danh sách tất cả các đơn hàng
-const getAllOrders = async (req, res) => {
-  try {
-    const orders = await orderModel.find();
-    res.status(200).json({
-      success: true,
-      orders,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+const getAllOrder = async (req, res) => {
+  const pageNumber = req.query.pn;
+  const searchKey = req.query.sk;
+  const limit = req.query.limit;
+  const pageSize = limit ? limit : constants.CONST_USER_PER_PAGE; // Bạn cần xác định giá trị cho CONST_USER_PER_PAGE
+  const skip = (pageNumber - 1) * pageSize;
+
+  let total = await orderModel.countDocuments(); 
+  let totalUsers = await orderModel
+    .find()
+    .skip(skip)
+    .limit(pageSize)
+    .populate("userId")
+    .exec();
+
+  const totalPage = Math.ceil(total / pageSize); 
+  const data = {
+    totalItems: total,
+    totalPage: totalPage,
+    currentPage: pageNumber,
+    items: totalUsers,
+  };
+
+  res.status(200).send({
+    message: "Get user product is success",
+    data: data,
+  });
 };
+
 
 // Lấy chi tiết đơn hàng theo ID
 const getOrderById = async (req, res) => {
   try {
-    const order = await orderModel.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
+    const orderId = req.params.id;
+    if(mongoose.isValidObjectId(orderId)) {
+      const order = await orderModel.findById(orderId).exec();
+
+      const orderItems = await orderItemModel.find({orderId: orderId}).populate("productId").exec();
+      if (!order || !orderItems) {
+      return res.status(400).json({
+        message: "Not found order or order items infor",
       });
     }
     res.status(200).json({
       success: true,
-      order,
+      data:{
+        order: order,
+        orderItems: orderItems
+      },
     });
+  } else {
+    return res.status(400).json({
+      message: "Not found order",
+    });
+  }
+
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -82,25 +113,48 @@ const getOrderById = async (req, res) => {
 // Cập nhật trạng thái đơn hàng
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const order = await orderModel.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true } // Trả về document đã cập nhật
-    );
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
+    const { orderId, status } = req.body;
+    let newStatus = "";
+    switch (status) {
+      case constants.CONST_ORDER_STATUS_ORDERED:
+        newStatus = constants.CONST_ORDER_STATUS_WATTING_FOR_PAYMENT
+        break;
+       case constants.CONST_ORDER_STATUS_WATTING_FOR_PAYMENT:
+        newStatus = constants.CONST_ORDER_STATUS_ACCEPTED 
+        break;
+        case constants.CONST_ORDER_STATUS_ACCEPTED:
+          newStatus = constants.CONST_ORDER_STATUS_SHIPPING 
+          break;
+       case constants.CONST_ORDER_STATUS_SHIPPING:
+        newStatus = constants.CONST_ORDER_STATUS_SHIPPED
+        break; 
+      case constants.CONST_ORDER_STATUS_SHIPPED:
+        newStatus = constants.CONST_ORDER_STATUS_COMPLETE
+        break;
+    
+      default:
+        break;
+    }
+    if (newStatus !== "") {
+      const order = await orderModel.findByIdAndUpdate(
+        orderId,
+        { status: newStatus },
+        { new: true } // Trả về document đã cập nhật
+      );
+  
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Không tìm thấy đơn hàng",
+        });
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Trạng thái đơn hàng đã được cập nhật",
+        order,
       });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Trạng thái đơn hàng đã được cập nhật",
-      order,
-    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -126,10 +180,9 @@ const deleteOrder = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 module.exports = {
   createOrder,
-  getAllOrders,
+  getAllOrder,
   getOrderById,
   updateOrderStatus,
   deleteOrder,

@@ -8,6 +8,7 @@ const orderItemSchema = moongose.Schema({
     },
     productId: {
         type: mongoose.Types.ObjectId,
+        ref : 'products',
         require: true
     },
     price: {

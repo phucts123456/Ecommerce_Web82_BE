@@ -21,6 +21,16 @@ const addRole = (req, res) => {
   }
 };
 
+const getRole = async (req, res) => {
+  const totalItems = await roleModel.find().limit().exec();
+  res.status(200).send({
+      message: 'Get role category success',
+      data: totalItems
+  });
+}
+
+
 module.exports = {
   addRole,
+  getRole
 };
