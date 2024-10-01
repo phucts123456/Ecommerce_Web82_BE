@@ -13,6 +13,7 @@ const createOrder = async (req, res) => {
     const city = req.body.city;
     const phoneNumber = req.body.phoneNumber;
     const email = req.body.email;
+    const companyName =  req.body.companyName;
     const items = req.body.items;
     const newOrder = {
         status: status,
@@ -22,6 +23,7 @@ const createOrder = async (req, res) => {
         city: city,
         phoneNumber: phoneNumber,
         email: email,
+        companyName: companyName,
         orderDate: (new Date()).toDateString(),
         userId: userId
     }
@@ -78,7 +80,7 @@ const getAllOrder = async (req, res) => {
   };
 
   res.status(200).send({
-    message: "Get user product is success",
+    message: "Get order is success",
     data: data,
   });
 };
@@ -89,7 +91,7 @@ const getOrderById = async (req, res) => {
   try {
     const orderId = req.params.id;
     if(mongoose.isValidObjectId(orderId)) {
-      const order = await orderModel.findById(orderId).exec();
+      const order = await orderModel.findById(orderId).populate("userId").exec();
 
       const orderItems = await orderItemModel.find({orderId: orderId}).populate("productId").exec();
       if (!order || !orderItems) {
@@ -150,13 +152,13 @@ const updateOrderStatus = async (req, res) => {
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: "Không tìm thấy đơn hàng",
+          message: "Not found order",
         });
       }
   
       res.status(200).json({
         success: true,
-        message: "Trạng thái đơn hàng đã được cập nhật",
+        message: "Order status updated",
         order,
       });
     }
@@ -179,16 +181,48 @@ const deleteOrder = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Đơn hàng đã được xóa thành công",
+      message: "Delete",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+const getOrderHistory = async (req, res) => {
+  const pageNumber = req.query.pn;
+  const searchKey = req.query.sk;
+  const limit = req.query.limit;
+  const pageSize = limit ? limit : constants.CONST_ORDER_PER_PAGE; // Bạn cần xác định giá trị cho CONST_USER_PER_PAGE
+  const skip = (pageNumber - 1) * pageSize;
+  const userId = req.user.id;
+  console.log(userId)
+  let total = await orderModel.countDocuments(); 
+  let totalUsers = await orderModel
+    .find({userId:userId})
+    .skip(skip)
+    .limit(pageSize)
+    .populate("userId")
+    .exec();
+
+  const totalPage = Math.ceil(total / pageSize); 
+  const data = {
+    totalItems: total,
+    totalPage: totalPage,
+    currentPage: pageNumber,
+    items: totalUsers,
+  };
+
+  res.status(200).send({
+    message: "Get order product is success",
+    data: data,
+  });
+};
+
 module.exports = {
   createOrder,
   getAllOrder,
   getOrderById,
   updateOrderStatus,
   deleteOrder,
+  getOrderHistory
 };

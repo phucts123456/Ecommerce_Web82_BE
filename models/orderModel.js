@@ -4,6 +4,7 @@ const moongose = require('mongoose');
 const orderSchema = moongose.Schema({
     userId: {
         type: mongoose.Types.ObjectId,
+        ref:"users",
         require: true
     },
     totalPrice: {

@@ -88,8 +88,7 @@ const createProduct = async (req, res) => {
             });
           } else {
             res.status(400).json({
-              message :"Create fail. Product existed",
-              data: newProduct
+              message :"Create fail. Product existed"
             });
           }
         }
