@@ -18,7 +18,7 @@ const productSchema = moongose.Schema({
         require: true
     },
     quantity: {
-        type: String,
+        type: Number,
         require: true
     },
     categoryId: {

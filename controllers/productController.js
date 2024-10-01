@@ -221,6 +221,28 @@ const deleteProduct = async (req, res) => {
   }
 };
 
+const checkProductStock = async (req, res) => {
+  try {
+    const productId = req.query.pid;
+    const quantityAddCart = Number.parseInt(req.query.quantity);
+    const isExistProduct = await productModel.findById(productId);
+    if (!isExistProduct) {
+      return res.status(400).json({ message: "Not found product." });
+    }
+    if (isExistProduct.quantity !== undefined && isExistProduct.quantity !== null && isExistProduct.quantity >= quantityAddCart) {
+      res.status(200).json({ message: "Check quantity product Ok!" });
+    } else {
+      res.status(400).json({ message: `Not enough product on stock. Only`
+      +` ${(isExistProduct.quantity !== undefined && isExistProduct.quantity !== null) ? isExistProduct.quantity : 0}`
+      +` product left.`});
+    }
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error when delete product.", error: error.message });
+  }
+};
+
 // Xuất các hàm xử lý để sử dụng trong router
 module.exports = {
   getProduct,
@@ -230,4 +252,5 @@ module.exports = {
   getProductById,
   updateProduct,
   deleteProduct,
+  checkProductStock
 };

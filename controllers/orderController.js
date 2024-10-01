@@ -1,6 +1,7 @@
 const { default: mongoose } = require("mongoose");
 const orderItemModel = require("../models/orderItemModel");
 const orderModel = require("../models/orderModel");
+const productModel = require("../models/productModel")
 const constants = require("../utils/constants");
 
 const createOrder = async (req, res) => {
@@ -13,7 +14,6 @@ const createOrder = async (req, res) => {
     const phoneNumber = req.body.phoneNumber;
     const email = req.body.email;
     const items = req.body.items;
-    console.log(items)
     const newOrder = {
         status: status,
         totalPrice: totalPrice,
@@ -35,6 +35,11 @@ const createOrder = async (req, res) => {
                 subTotal: item.quantity * item.price
             }
             await orderItemModel.create(newOrderItem);
+            let productUpdateStock = await productModel.findById(item.productId).exec();
+            if(!productUpdateStock) {
+              productUpdateStock.quantity = productUpdateStock.quantity - Number.parseInt(item.quantity);
+            }
+            await productUpdateStock.save();
         }
         newOrder.items = items;
         res.status(201).send({
