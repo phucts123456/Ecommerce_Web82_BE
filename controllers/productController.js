@@ -83,7 +83,7 @@ const createProduct = async (req, res) => {
             });
             await productModel.create(newProduct);
             res.status(201).json({
-              message :"Update product success",
+              message :"Create product success",
               data: newProduct
             });
           } else {
@@ -93,8 +93,8 @@ const createProduct = async (req, res) => {
           }
         }
         if (err) {
-          res.status(201).json({
-            message :"create product fail. Upload image fail"
+          res.status(400).json({
+            message :"Create product fail. Upload image fail"
           });
         }
     })
