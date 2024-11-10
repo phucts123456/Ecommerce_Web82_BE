@@ -25,6 +25,10 @@ const userSchema = moongose.Schema({
     address: {
         type: String,
         require: true
+    },
+    isDelete: {
+        type: Boolean,
+        require: true
     }
 });
 
