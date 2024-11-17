@@ -2,6 +2,7 @@ const productModel = require("../models/productModel"); // Import model sản ph
 const cloudinary = require('cloudinary').v2;
 const constants = require("../utils/constants");
 const categoryModel = require("../models/categoryModel");
+const productVariationModel = require("../models/productVariationModel");
 const getProduct = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
@@ -51,19 +52,19 @@ const getDetail = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
-    const { name, price, isAvailable, quantity, description, categoryId, } =
+    const { name, price, isAvailable, quantity, description, categoryId, variations} =
       req.body;
     // Kiểm tra nếu thiếu thông tin cần thiết
     if (!name || !price || !quantity || !description || !categoryId || !isAvailable) {
       return res
         .status(400)
-        .json({ message: "Vui lòng cung cấp đầy đủ thông tin sản phẩm!" });
+        .json({ message: "Please fill in all necessary fields!" });
     }
-    const file = req.file;
+    const file = req.files.file[0];
     if (!file) {
       return res.status(400).json({ error: 'Không có tệp được tải lên.' });
     }
-
+    let newProduct = {};
     const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
     cloudinary.uploader.upload(dataUrl, {
         resource_type: 'auto'
@@ -72,7 +73,7 @@ const createProduct = async (req, res) => {
         if(result) {
           const isExistProduct = await productModel.findOne({name: name}).exec();
           if (!isExistProduct) {
-            const newProduct = new productModel({
+            newProduct = new productModel({
               name,
               price,
               isAvailable,
@@ -82,10 +83,49 @@ const createProduct = async (req, res) => {
               image: result.secure_url
             });
             await productModel.create(newProduct);
-            res.status(201).json({
-              message :"Create product success",
-              data: newProduct
-            });
+
+             // Regist variation.
+            const variationFiles = req.files.variationFiles;
+            const variationArray = JSON.parse(variations); 
+            for(var i = 0; i < variationArray.length; i++) {
+              if (variationFiles[i] === null 
+                || variationFiles[i] === undefined) continue;
+              const dataUrl = `data:${variationFiles[i].mimetype};base64,${variationFiles[i].buffer.toString('base64')}`;
+              const result = await cloudinary.uploader.upload(dataUrl, {resource_type: 'auto'});
+              if (result) {
+                    const productId = newProduct._id;
+                    const variation = variationArray[i];
+                    console.log("variation")    
+                    console.log(variation)    
+                    const isExistedVariation = await productVariationModel
+                      .findOne({productId: productId, name: variation.name})
+                      .exec();
+                    if (!isExistedVariation) {
+                      const variationName = variation.name;
+                      const variationPrice = variation.price;
+                      const variationColor = variation.color;
+                      const newVariation = new productVariationModel({
+                        productId: productId,
+                        name: variationName,
+                        price: variationPrice,
+                        color: variationColor,
+                        image: result.secure_url
+                      });
+                      newProduct.variations.push(newVariation);
+                      console.log("newVariation")
+                      console.log(newVariation)
+                      await productVariationModel.create(newVariation);   
+                    } else {
+                      res.status(400).json({
+                        message :"Create fail. Product existed"
+                      });
+                  }
+              } 
+            }
+            res.status(200).json({
+              message :"Create product success.",
+              data :newProduct
+            }); 
           } else {
             res.status(400).json({
               message :"Create fail. Product existed"
@@ -97,9 +137,7 @@ const createProduct = async (req, res) => {
             message :"Create product fail. Upload image fail"
           });
         }
-    })
-
-    
+    });
   } catch (error) {
     res
       .status(500)

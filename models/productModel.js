@@ -34,6 +34,11 @@ const productSchema = moongose.Schema({
     image: {
         type: String,
         require: true
+    },
+    variations: {
+        type: [],
+        require:true,
+        ref: "productVariations",
     }
 });
 
