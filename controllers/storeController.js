@@ -3,7 +3,7 @@ const userModel = require("../models/userModel");
 const bcrypt = require("bcrypt");
 
 const addStore = async (req, res) => {
-  const { name, wardId, districId, provinceId, address, phoneNumber, email, userName,role  } = req.body;
+  const { name, wardId, districId, provinceId, address, phoneNumber, email, userName, role  } = req.body;
   const salt = bcrypt.genSaltSync();
   const hashPassword = bcrypt.hashSync(password, salt);
   const userStore = StoreModel.findOne({ name: name }).exec();
