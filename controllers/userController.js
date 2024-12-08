@@ -1,7 +1,8 @@
 const userModel = require("../models/userModel");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const constants = require("./constants.js")
+const constants = require("../utils/constants");
+
 const roleModel = require("../models/roleModel");
 const { default: mongoose } = require("mongoose");
 
@@ -84,6 +85,52 @@ const loginUser = async (req, res) => {
     });
   }
 };
+
+
+const loginAdmin = async (req, res) => {
+  const userName = req.body.userName;
+  const password = req.body.password;
+  const userFromDB = await userModel.findOne({ userName: userName }).populate("roleId").exec();
+  const isCorrectPassword = userFromDB
+    ? bcrypt.compareSync(password, userFromDB.password)
+    : false;
+  const validRoles = [constants.CONST_ROLE_SHOP, constants.CONST_ROLE_ADMIN];
+  if (userFromDB && isCorrectPassword) {
+    const roleFromDB = await roleModel.findOne({ name: userFromDB.roleId.name }).exec();
+    if (roleFromDB === false || validRoles.includes(roleFromDB.name) === false) {
+      return res.status(400).send({
+        message:
+          "Login fail. You can not access this page."
+      });
+    }
+    if (userFromDB.isDelete === true) {
+      return res.status(400).send({
+        message:
+          "Login fail. This user has been locked. " +
+          "\n Please contact admin.",
+      });
+    }
+    const accessTokenSecret = process.env.ACCESSS_TOKEN_SECERT_KEY;
+    const refreshTokenSecret = process.env.REFRESH_TOKEN_SECERT_KEY;
+
+    const accessToken = jwt.sign({ id: userFromDB.id, role: roleFromDB.name }, accessTokenSecret, {
+      expiresIn: "1h",
+    });
+    const refreshToken = jwt.sign({ id: userFromDB.id, role: roleFromDB.name }, refreshTokenSecret, {
+      expiresIn: "1d",
+    });
+    return res.status(200).send({
+      message: "Login success",
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    });
+  } else {
+    return res.status(400).send({
+      message: "Login fail. Wrong username or password",
+    });
+  }
+};
+
 
 const getUser = async (req, res) => {
   const userId = req.params.id;
@@ -190,5 +237,6 @@ module.exports = {
   loginUser,
   deleteUser,
   getAlluser,
-  activeUser
+  activeUser,
+  loginAdmin
 };

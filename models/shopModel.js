@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const storeSchema = mongoose.Schema({
+const shopSchema = mongoose.Schema({
     userId: {
         type: mongoose.Types.ObjectId,
         ref:"users",
@@ -19,15 +19,15 @@ const storeSchema = mongoose.Schema({
         require: true
     },
     districtId: {
-        type: String,
+        type: Number,
         require: true
     },
     provinceId: {
-        type: String,
+        type: Number,
         require: true
     }
 });
 
-const storeModel = mongoose.model("stores", storeSchema);
+const shopModel = mongoose.model("shops", shopSchema);
 
-module.exports = storeModel;
+module.exports = shopModel;

@@ -9,6 +9,9 @@ const constants = {
     CONST_ORDER_STATUS_SHIPPING:"3",
     CONST_ORDER_STATUS_SHIPPED:"4",
     CONST_ORDER_STATUS_COMPLETE:"5",
+    CONST_ROLE_SHOP: "shop",
+    CONST_ROLE_CUSTOMER: "customer",
+    CONST_ROLE_ADMIN: "admin"
 }
 
 module.exports = constants

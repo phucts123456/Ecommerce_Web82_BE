@@ -20,7 +20,11 @@ const getProvince = (req, res) => {
 }
 
 const getDistrict = (req, res) => {
-    const province_id = req.body.province_id;
+    const province_id = req.query.provinceId;
+    if (province_id === undefined)         
+    res.status(400).send({
+        message: "Get district fail. Please specify provinceId"
+    });
     const data = { 'province_id': Number.parseInt(province_id)}
     GnhApiInstance.post(`${MASTER_DATA_ENDPOINT}${DISTRICT_ENDPOINT}`, data)
     .then((response) => {
@@ -31,15 +35,17 @@ const getDistrict = (req, res) => {
     },).catch((error) => {
         res.status(400).send({
             message: "Get district fail",
-            data: error.data.message
+            data: error.data
         });
     })
 }
 
 const getWard = (req, res) => {
-    const district_id = req.body.district_id;
-    console.log("district_id")
-    console.log(req.body)
+    const district_id = req.query.districtId;
+    if (district_id === undefined)         
+    res.status(400).send({
+        message: "Get ward fail. Please specify districtId"
+    });
     const data = { 'district_id': Number.parseInt(district_id)}
     GnhApiInstance.post(`${MASTER_DATA_ENDPOINT}${WARD_ENDPOINT}?district_id`, data)
     .then((response) => {
@@ -51,7 +57,8 @@ const getWard = (req, res) => {
         res.status(400).send({
             message: "Get district fail",
             data: error.data.message
-        });    })
+        });    
+    })
 }
 
 module.exports = {

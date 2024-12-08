@@ -20,6 +20,10 @@ const productVariationSchema = mongoose.Schema({
     image: {
         type: String,
         require: true,
+    },
+    isAvailable: {
+        type: Boolean,
+        require: true,
     }
 });
 

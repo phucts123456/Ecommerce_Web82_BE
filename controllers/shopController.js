@@ -1,20 +1,21 @@
-const StoreModel = require("../models/storeModel");
+const ShopModel = require("../models/ShopModel");
 const userModel = require("../models/userModel");
+const roleModel = require("../models/roleModel");
 const bcrypt = require("bcrypt");
 
-const addStore = async (req, res) => {
-  const { name, wardId, districId, provinceId, address, phoneNumber, email, userName, role  } = req.body;
+const addShop = async (req, res) => {
+  const { name, wardId, districId, provinceId, address, phoneNumber, email, role, password, fullName  } = req.body;
   const salt = bcrypt.genSaltSync();
   const hashPassword = bcrypt.hashSync(password, salt);
-  const userStore = StoreModel.findOne({ name: name }).exec();
+  const userShop = await ShopModel.findOne({ name: name }).exec();
 
     // Regist user
-    const userFromDB = await userModel.findOne({ userName: userName }).exec();
+    const userFromDB = await userModel.findOne({ userName: email, phoneNumber: phoneNumber }).exec();
     const roleFromDB = await roleModel.findOne({ name: role }).exec();
     let newUser = new userModel();
     if (!userFromDB && roleFromDB) {
         newUser = {
-            userName: userName,
+            userName: email,
             email: email,
             roleId: roleFromDB._id,
             address: address,
@@ -36,8 +37,8 @@ const addStore = async (req, res) => {
         }
     }
 
-    if (!userStore) {
-        const newStore = {
+    if (!userShop) {
+        const newShop = {
             name: name,
             wardId: wardId,
             districId: districId,
@@ -45,28 +46,29 @@ const addStore = async (req, res) => {
             address: address,
             userId: newUser.userId,
         };
-        await StoreModel.creare(newStore);
+        await ShopModel.create(newShop);
         res.status(201).send({
-        message: "Create Store success!",
-        data: newStore,
+        message: "Create Shop success!",
+        data: newShop,
         });
     } else {
+        await userModel.deleteOne({_id: newUser._id}).exec();
         res.status(400).send({
-        message: "Create Store fail, this Store already existed",
+        message: "Create Shop fail, this Shop already existed",
         });
     }
 };
 
-const getStore = async (req, res) => {
-  const totalItems = await StoreModel.find().limit().exec();
+const getShop = async (req, res) => {
+  const totalItems = await ShopModel.find().limit().exec();
   res.status(200).send({
-      message: 'Get Store category success',
+      message: 'Get Shop success',
       data: totalItems
   });
 }
 
 
 module.exports = {
-  addStore,
-  getStore
+  addShop,
+  getShop
 };

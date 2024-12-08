@@ -3,6 +3,7 @@ const cloudinary = require('cloudinary').v2;
 const constants = require("../utils/constants");
 const categoryModel = require("../models/categoryModel");
 const productVariationModel = require("../models/productVariationModel");
+const { ObjectId } = require("mongodb");
 const getProduct = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
@@ -280,6 +281,29 @@ const checkProductStock = async (req, res) => {
   }
 };
 
+const getProductVariation = async (req, res) => {
+  try {
+    const id = req.params.productId;
+    const variation = await productVariationModel.find({productId: id}).exec();
+
+    if (variation.length === 0) {
+      return res.status(400).json({ message: "No variation founded." });
+    }
+
+    res.status(200).json({
+      message: "Get variation success.",
+      data: variation
+    });
+  } catch (error) {
+    res
+    .status(500)
+    .json({
+      message: "Lỗi server khi lấy thông tin sản phẩm.",
+      error: error.message,
+    });
+  }
+};
+
 // Xuất các hàm xử lý để sử dụng trong router
 module.exports = {
   getProduct,
@@ -289,5 +313,6 @@ module.exports = {
   getProductById,
   updateProduct,
   deleteProduct,
-  checkProductStock
+  checkProductStock,
+  getProductVariation
 };
