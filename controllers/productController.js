@@ -4,6 +4,7 @@ const constants = require("../utils/constants");
 const categoryModel = require("../models/categoryModel");
 const productVariationModel = require("../models/productVariationModel");
 const { ObjectId } = require("mongodb");
+const { default: mongoose } = require("mongoose");
 const getProduct = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
@@ -53,6 +54,7 @@ const getDetail = async (req, res) => {
 
 const createProduct = async (req, res) => {
   try {
+    console.log(req)
     const { name, price, isAvailable, quantity, description, categoryId, variations} =
       req.body;
     // Kiểm tra nếu thiếu thông tin cần thiết
@@ -91,6 +93,8 @@ const createProduct = async (req, res) => {
             for(var i = 0; i < variationArray.length; i++) {
               if (variationFiles[i] === null 
                 || variationFiles[i] === undefined) continue;
+              const variationImage = variationFiles.find(file => file.name.includes(variationArray[i]._id));
+              if (!variationImage) continue;
               const dataUrl = `data:${variationFiles[i].mimetype};base64,${variationFiles[i].buffer.toString('base64')}`;
               const result = await cloudinary.uploader.upload(dataUrl, {resource_type: 'auto'});
               if (result) {
@@ -185,18 +189,26 @@ const getProductById = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, isAvailable, quantity, description, categoryId, image } = req.body;
-
-
-    const file = req.file;
+    const { name, price, isAvailable, quantity, description, categoryId, image, variations, variationFiles} = req.body;
+    console.log("variationFiles.length")
+    console.log(variationFiles.length)
+    console.log(variationFiles)
+    console.log("variationFiles")
+    console.log(req.files)
+    const file = req.files.filter(file => file.fieldname === 'file')[0];
+    console.log("file123")
+    console.log(variations)
+    //const variationFiles = req.files['variationFiles[]'];
     if (image !== undefined) {
+      console.log("without update image")
       const updateModel = { name, price, isAvailable, quantity, description, categoryId, image };
       await productModel.findByIdAndUpdate(
         req.params.id,
         { name, price, isAvailable, quantity, description, categoryId, image }
       );
-      return res.status(200).json({message:"Update product success", data: updateModel });
+    await updateVariation(req.files,variationFiles, variations, req.params.id);
     } else {
+      console.log("update image")
       if (!file) {
         return res.status(400).json({ error: 'No file was uploaded.' });
       }
@@ -216,10 +228,10 @@ const updateProduct = async (req, res) => {
               isExistProduct.categoryId = categoryId;
               isExistProduct.image = result.secure_url;
               await isExistProduct.save();
-              res.status(201).json({
-                message :"Update product success",
-                data: isExistProduct
-              });
+              await updateVariation(req.files,variationFiles, variations ,isExistProduct._id);
+              res.status(200).json({
+                message :"Create product success.",
+              }); 
             } else {
               res.status(400).json({
                 message :"Update fail. Product not existed"
@@ -243,6 +255,70 @@ const updateProduct = async (req, res) => {
   }
 };
 
+const updateVariation = async (reqFile, fileArray, variations, pId) => {
+  console.log("update variation:");
+  console.log("variations")
+  // console.log(variations)
+  // console.log("variationFiles")
+  // console.log(variationFiles)
+  console.log(variations)
+  const variationArray = JSON.parse(variations); 
+  for(var i = 0; i < variationArray.length; i++) {
+    // console.log("variationFiles[i]")
+    // console.log(variationFiles[i])
+    // if (variationFiles[i] === null 
+    //   || variationFiles[i] === undefined) continue;
+    const fileIndex = fileArray.findIndex(file => file.fileName.includes(variationArray[i]._id));
+    console.log("fileIndex");
+    console.log(fileIndex);
+    const variationImage = reqFile.find(file => file.fieldname.includes(`variationFiles[${fileIndex}][image]`));
+    if (!variationImage) continue;
+    const dataUrl = `data:${variationImage.mimetype};base64,${variationImage.buffer.toString('base64')}`;
+    const result = await cloudinary.uploader.upload(dataUrl, {resource_type: 'auto'});
+    if (result) {
+          const variation = variationArray[i];
+          const vid = variation._id;
+          console.log("variation_index")    
+          console.log(variation)    
+          const isExistedVariation = 
+            mongoose.isValidObjectId(vid) 
+            ? await productVariationModel
+              .findById(vid)
+              .exec() 
+            : null;
+          if (!isExistedVariation) {
+            const variationName = variation.name;
+            const variationPrice = variation.price;
+            const variationColor = variation.color;
+            console.log("newVariation")
+            const newVariation = new productVariationModel({
+              productId: pId,
+              name: variationName,
+              price: variationPrice,
+              color: variationColor,
+              image: result.secure_url
+            });
+            console.log("newVariation")
+            console.log(newVariation)
+            await productVariationModel.create(newVariation);   
+          } else if(isExistedVariation)  {
+            console.log("isExistedVariation")
+            console.log(isExistedVariation)
+            const variationName = variation.name;
+            const variationPrice = variation.price;
+            const variationColor = variation.color;
+            console.log("update")
+            const updateVariation ={
+              name: variationName,
+              price: variationPrice,
+              color: variationColor,
+              image: result.secure_url
+            };
+            await productVariationModel.findByIdAndUpdate(isExistedVariation._id,updateVariation);
+        }
+    } 
+  }
+}
 // Xóa sản phẩm
 const deleteProduct = async (req, res) => {
   try {

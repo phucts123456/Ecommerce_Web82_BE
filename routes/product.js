@@ -15,7 +15,9 @@ router.post(
         name: 'variationFiles', 
         }]),
     (req, res) => productController.createProduct(req, res));
-router.put('/api/v1/products/:id',  upload.single('file'), (req, res) => productController.updateProduct(req, res));
+router.put('/api/v1/products/:id',
+    upload.any(),
+    (req, res) => productController.updateProduct(req, res));
 router.get("/api/v1/products/get-variation/:productId", (req, res) => productController.getProductVariation(req, res));
 
 module.exports = router;
