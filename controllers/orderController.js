@@ -68,7 +68,7 @@ const createOrder = async (req, res) => {
                 await productUpdateStock.save();
                 html += `product: ${item.productId}, variation: ${item.variationId}, price: ${item.price}, quantity: ${item.quantity}, subTotal:${item.quantity * item.price}<br \>`
               } else {
-                res.status(400).send({
+                return res.status(400).send({
                   message: `Create  order fail. Can not find stock data for product Id: ${item.productId}`
                 });
               }
@@ -79,14 +79,14 @@ const createOrder = async (req, res) => {
           html += `Total: ${order.totalPrice}<br \>`
         } else {
           console.log("loi")
-          res.status(400).send({
+          return res.status(400).send({
             message: "Create  order fail."
           });
         }
       await sendMail({email:order.email,subject:"New order created",html:html})
     }
     console.log("OK")
-    res.status(201).send({
+    return res.status(201).send({
         message: "Create  order success"
     });
 }
