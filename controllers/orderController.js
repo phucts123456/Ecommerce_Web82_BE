@@ -1,59 +1,94 @@
 const { default: mongoose } = require("mongoose");
 const orderItemModel = require("../models/orderItemModel");
 const orderModel = require("../models/orderModel");
-const productModel = require("../models/productModel")
+const productModel = require("../models/productModel");
+const productStockModel = require("../models/productStock");
 const constants = require("../utils/constants");
-
+const ShopModel = require("../models/ShopModel");
+const sendMail = require("../utils/sendmail")
 const createOrder = async (req, res) => {
-    const status = req.body.status;
-    const userId = req.user.id;
-    const totalPrice = req.body.totalPrice;
-    const streetAddress = req.body.streetAddress;
-    const apartment = req.body.apartment;
-    const city = req.body.city;
-    const phoneNumber = req.body.phoneNumber;
-    const email = req.body.email;
-    const companyName =  req.body.companyName;
-    const items = req.body.items;
-    const newOrder = {
-        status: status,
-        totalPrice: totalPrice,
-        streetAddress: streetAddress,
-        apartment: apartment,
-        city: city,
-        phoneNumber: phoneNumber,
-        email: email,
-        companyName: companyName,
-        orderDate: (new Date()).toDateString(),
-        userId: userId
-    }
-    orderModel.create(newOrder).then( async (newOrder) => {
-        for(let item of items) {
+    // const status = req.body.status;
+    // const userId = req.user.id;
+    // const totalPrice = req.body.totalPrice;
+    // const subTotal = req.body.subTotal;
+    // const shippingFee = req.body.shippingFee;
+    // const streetAddress = req.body.streetAddress;
+    // const apartment = req.body.apartment;
+    // const phoneNumber = req.body.phoneNumber;
+    // const email = req.body.email;
+    // const provinceId =  req.body.provinceId;
+    // const districtId =  req.body.districtId;
+    // const wardId =  req.body.wardId;
+    // const items = req.body.items;
+    const orders = req.body.orders;
+    console.log(req.body);
+    const responseData = []
+    
+    for(const order of orders) {
+        let html = "";
+        const newOrder = {
+          status: order.status,
+          subTotal: order.subTotal,
+          totalPrice: order.totalPrice,
+          shippingFee: order.shippingFee,
+          streetAddress: order.streetAddress,
+          apartment: order.apartment,       
+          provinceId: order.provinceId,
+          districtId: order.districtId,
+          wardId: order.wardId,
+          phoneNumber: order.phoneNumber,
+          email: order.email,
+          orderDate: (new Date()).toDateString(),
+          userId: order.userId,
+          shopId: order.shopId
+        }
+        const result = await orderModel.create(newOrder);
+        const shop = await ShopModel.findById(order.shopId).exec();
+        if (shop) {
+          html += `<h2>You have just order (shop: ${shop.name}) - Order ID: ${result._id}</h2><br \>`
+        }
+        if(result._id) 
+        {
+          for(let item of order.items) {
             const newOrderItem = {
                 productId: item.productId,
+                variationId: item.variationId,
                 price: item.price,
-                orderId: newOrder._id,
+                orderId: result._id,
                 quantity: item.quantity,
                 subTotal: item.quantity * item.price
             }
-            await orderItemModel.create(newOrderItem);
-            let productUpdateStock = await productModel.findById(item.productId).exec();
-            if(!productUpdateStock) {
-              productUpdateStock.quantity = productUpdateStock.quantity - Number.parseInt(item.quantity);
+            var resultOrderItem = await orderItemModel.create(newOrderItem);
+            if (resultOrderItem) {
+              let productUpdateStock = await productStockModel
+                .findOne({productId:item.productId,variationId: item.variationId, shopId:order.shopId})
+                .exec();
+              if(productUpdateStock) {
+                productUpdateStock.quantity = productUpdateStock.quantity - Number.parseInt(item.quantity);
+                await productUpdateStock.save();
+                html += `product: ${item.productId}, variation: ${item.variationId}, price: ${item.price}, quantity: ${item.quantity}, subTotal:${item.quantity * item.price}<br \>`
+              } else {
+                res.status(400).send({
+                  message: `Create  order fail. Can not find stock data for product Id: ${item.productId}`
+                });
+              }
             }
-            await productUpdateStock.save();
+          }
+          html += `Subtotal: ${order.subTotal}<br \>`
+          html += `Shipping Fee: ${order.shippingFee}<br \>`
+          html += `Total: ${order.totalPrice}<br \>`
+        } else {
+          console.log("loi")
+          res.status(400).send({
+            message: "Create  order fail."
+          });
         }
-        newOrder.items = items;
-        res.status(201).send({
-            message: "Create  order success",
-            data: newOrder
-        });
-    }).catch((error) =>{
-        res.status(400).send({
-            message: "Create  order fail",
-            data: error
-        });
-    });;
+      await sendMail({email:order.email,subject:"New order created",html:html})
+    }
+    console.log("OK")
+    res.status(201).send({
+        message: "Create  order success"
+    });
 }
 
 const getAllOrder = async (req, res) => {
@@ -93,7 +128,7 @@ const getOrderById = async (req, res) => {
     if(mongoose.isValidObjectId(orderId)) {
       const order = await orderModel.findById(orderId).populate("userId").exec();
 
-      const orderItems = await orderItemModel.find({orderId: orderId}).populate("productId").exec();
+      const orderItems = await orderItemModel.find({orderId: orderId}).populate("productId").populate("variationId").exec();
       if (!order || !orderItems) {
       return res.status(400).json({
         message: "Not found order or order items infor",

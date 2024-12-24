@@ -15,7 +15,7 @@ const getProduct = async (req, res) => {
   let searchModel = searchKey !== '' &&  searchKey !== undefined
       ? {name: { $regex: '.*' + searchKey + '.*' }} 
       : {}
-  if (category !== "" && category !== undefined) {
+  if (category) {
       const isExistCategory = await categoryModel.findOne({name: category}).exec();
       if(isExistCategory) {
           searchModel.categoryId = isExistCategory.id
@@ -39,7 +39,7 @@ const getProduct = async (req, res) => {
 
 const getDetail = async (req, res) => {
   const productId = req.params.id;
-  const isExistProduct = await productModel.findById({_id: productId}).populate("categoryId").populate("rate").exec(); 
+  const isExistProduct = await productModel.findById({_id: productId}).populate("categoryId").populate("shopId").populate("rate").exec(); 
   if (isExistProduct) {
       res.status(200).send({
           message: 'Get product success',
@@ -55,19 +55,20 @@ const getDetail = async (req, res) => {
 const createProduct = async (req, res) => {
   try {
     console.log(req)
-    const { name, price, isAvailable, quantity, description, categoryId, variations} =
+    const { name, price, isAvailable, description, categoryId, variations, variationFiles} =
       req.body;
     // Kiểm tra nếu thiếu thông tin cần thiết
-    if (!name || !price || !quantity || !description || !categoryId || !isAvailable) {
+    if (!name || !price || !description || !categoryId || !isAvailable) {
       return res
         .status(400)
         .json({ message: "Please fill in all necessary fields!" });
     }
-    const file = req.files.file[0];
+    const file = req.files.filter(file => file.fieldname === 'file')[0];
     if (!file) {
       return res.status(400).json({ error: 'Không có tệp được tải lên.' });
     }
     let newProduct = {};
+    let createProduct = {};
     const dataUrl = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
     cloudinary.uploader.upload(dataUrl, {
         resource_type: 'auto'
@@ -77,56 +78,17 @@ const createProduct = async (req, res) => {
           const isExistProduct = await productModel.findOne({name: name}).exec();
           if (!isExistProduct) {
             newProduct = new productModel({
-              name,
-              price,
-              isAvailable,
-              quantity,
-              description,
-              categoryId,
+              name:name,
+              price:price,
+              isAvailable:isAvailable,
+              description:description,
+              categoryId:categoryId,
               image: result.secure_url
             });
-            await productModel.create(newProduct);
+            const createProduct = await productModel.create(newProduct);
 
              // Regist variation.
-            const variationFiles = req.files.variationFiles;
-            const variationArray = JSON.parse(variations); 
-            for(var i = 0; i < variationArray.length; i++) {
-              if (variationFiles[i] === null 
-                || variationFiles[i] === undefined) continue;
-              const variationImage = variationFiles.find(file => file.name.includes(variationArray[i]._id));
-              if (!variationImage) continue;
-              const dataUrl = `data:${variationFiles[i].mimetype};base64,${variationFiles[i].buffer.toString('base64')}`;
-              const result = await cloudinary.uploader.upload(dataUrl, {resource_type: 'auto'});
-              if (result) {
-                    const productId = newProduct._id;
-                    const variation = variationArray[i];
-                    console.log("variation")    
-                    console.log(variation)    
-                    const isExistedVariation = await productVariationModel
-                      .findOne({productId: productId, name: variation.name})
-                      .exec();
-                    if (!isExistedVariation) {
-                      const variationName = variation.name;
-                      const variationPrice = variation.price;
-                      const variationColor = variation.color;
-                      const newVariation = new productVariationModel({
-                        productId: productId,
-                        name: variationName,
-                        price: variationPrice,
-                        color: variationColor,
-                        image: result.secure_url
-                      });
-                      newProduct.variations.push(newVariation);
-                      console.log("newVariation")
-                      console.log(newVariation)
-                      await productVariationModel.create(newVariation);   
-                    } else {
-                      res.status(400).json({
-                        message :"Create fail. Product existed"
-                      });
-                  }
-              } 
-            }
+            await updateVariation(req.files,variationFiles, variations, newProduct._id);  
             res.status(200).json({
               message :"Create product success.",
               data :newProduct
@@ -189,7 +151,7 @@ const getProductById = async (req, res) => {
 
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, isAvailable, quantity, description, categoryId, image, variations, variationFiles} = req.body;
+    const { name, price, isAvailable, description, categoryId, image, variations, variationFiles} = req.body;
     console.log("variationFiles.length")
     console.log(variationFiles.length)
     console.log(variationFiles)
@@ -201,10 +163,10 @@ const updateProduct = async (req, res) => {
     //const variationFiles = req.files['variationFiles[]'];
     if (image !== undefined) {
       console.log("without update image")
-      const updateModel = { name, price, isAvailable, quantity, description, categoryId, image };
+      const updateModel = { name, price, isAvailable, description, categoryId, image };
       await productModel.findByIdAndUpdate(
         req.params.id,
-        { name, price, isAvailable, quantity, description, categoryId, image }
+        { name, price, isAvailable, description, categoryId, image }
       );
     await updateVariation(req.files,variationFiles, variations, req.params.id);
     } else {
@@ -217,27 +179,48 @@ const updateProduct = async (req, res) => {
           resource_type: 'auto'
       }, async (err, result) => {
         console.log(result)
-          if(result) {
-            const isExistProduct = await productModel.findById(req.params.id).exec();
-            if (isExistProduct) {
-              isExistProduct.name = name;
-              isExistProduct.price = price;
-              isExistProduct.isAvailable = isAvailable;
-              isExistProduct.quantity = quantity;
-              isExistProduct.description = description;
-              isExistProduct.categoryId = categoryId;
-              isExistProduct.image = result.secure_url;
-              await isExistProduct.save();
-              await updateVariation(req.files,variationFiles, variations ,isExistProduct._id);
-              res.status(200).json({
-                message :"Create product success.",
-              }); 
-            } else {
-              res.status(400).json({
-                message :"Update fail. Product not existed"
-              });
-            }
-          }
+        if (result) {
+          const variation = variationArray[i];
+          const vid = variation._id;
+          console.log("variation_index")    
+          console.log(variation)    
+          const isExistedVariation = 
+            mongoose.isValidObjectId(vid) 
+            ? await productVariationModel
+              .findById(vid)
+              .exec() 
+            : null;
+          if (!isExistedVariation) {
+            const variationName = variation.name;
+            const variationPrice = variation.price;
+            const variationColor = variation.color;
+            console.log("newVariation")
+            const newVariation = new productVariationModel({
+              productId: pId,
+              name: variationName,
+              price: variationPrice,
+              color: variationColor,
+              image: result.secure_url
+            });
+            console.log("newVariation")
+            console.log(newVariation)
+            await productVariationModel.create(newVariation);   
+          } else if(isExistedVariation)  {
+            console.log("isExistedVariation")
+            console.log(isExistedVariation)
+            const variationName = variation.name;
+            const variationPrice = variation.price;
+            const variationColor = variation.color;
+            console.log("update")
+            const updateVariation ={
+              name: variationName,
+              price: variationPrice,
+              color: variationColor,
+              image: result.secure_url
+            };
+            await productVariationModel.findByIdAndUpdate(isExistedVariation._id,updateVariation);
+        }
+    } 
           if (err) {
             res.status(400).json({
               message :"Upload image fail"
@@ -379,6 +362,8 @@ const getProductVariation = async (req, res) => {
     });
   }
 };
+
+
 
 // Xuất các hàm xử lý để sử dụng trong router
 module.exports = {

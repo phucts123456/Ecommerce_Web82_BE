@@ -11,7 +11,7 @@ const jwtCheckMiddleware = (req, res, next) => {
         // Xác thực access token
         jwt.verify(token, secretKey, (err, decoded) => {
           if (err) {
-            return res.status(401).json({ success: false, msg: err.message});
+            return res.status(401).json({ success: false, message: err.message});
           } else {
             // Lưu thông tin người dùng từ access token vào req
             // tham số req sẽ được chuyển tiếp tới các handler tiếp theo

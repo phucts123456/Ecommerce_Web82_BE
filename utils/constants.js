@@ -3,6 +3,7 @@ const constants = {
     CONST_ORDER_PER_PAGE:10,
     CONST_CATEGORY_PER_PAGE:10,
     CONST_USER_PER_PAGE:10,
+    CONST_PRODUCT_STOCK_PER_PAGE:10,
     CONST_ORDER_STATUS_ORDERED:"0",
     CONST_ORDER_STATUS_WATTING_FOR_PAYMENT:"1",
     CONST_ORDER_STATUS_ACCEPTED:"2",
@@ -11,7 +12,7 @@ const constants = {
     CONST_ORDER_STATUS_COMPLETE:"5",
     CONST_ROLE_SHOP: "shop",
     CONST_ROLE_CUSTOMER: "customer",
-    CONST_ROLE_ADMIN: "admin"
-}
+    CONST_ROLE_ADMIN: "admin",
+    }
 
 module.exports = constants

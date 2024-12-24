@@ -86,7 +86,6 @@ const loginUser = async (req, res) => {
   }
 };
 
-
 const loginAdmin = async (req, res) => {
   const userName = req.body.userName;
   const password = req.body.password;
@@ -135,7 +134,7 @@ const loginAdmin = async (req, res) => {
 const getUser = async (req, res) => {
   const userId = req.params.id;
   
-  const userFromDB = mongoose.isValidObjectId(userId) ? await userModel.findById(userId).populate("roleId").exec()  : null;
+  const userFromDB = mongoose.isValidObjectId(userId) ? await userModel.findById(userId).populate("roleId").populate("shopId").exec()  : null;
 
   if (userFromDB) {
     res.status(200).send({

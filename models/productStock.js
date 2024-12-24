@@ -1,21 +1,23 @@
 const mongoose = require('mongoose');
 
 const productStockSchema = mongoose.Schema({
-    productId: {
+    shopId: {
         type: mongoose.Types.ObjectId,
         require: true,
     },
-    price: {
-        type: Number,
+    productId: {
+        ref:'products',
+        type: mongoose.Types.ObjectId,
         require: true,
     },
-    color: {
-        type: String,
-        require: true
+    variationId: {
+        ref:'productVariations',
+        type: mongoose.Types.ObjectId,
+        require: true,
     },
-    name: {
-        type: String,
-        require: true
+    quantity: {
+        type: Number,
+        require: true,
     }
 });
 

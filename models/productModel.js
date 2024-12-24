@@ -5,6 +5,11 @@ const productSchema = moongose.Schema({
     name: {
         type: String,
     },
+    shopId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "shops",
+        require: true
+    },
     price: {
         type: String,
         require: true

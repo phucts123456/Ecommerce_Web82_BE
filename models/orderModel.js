@@ -11,6 +11,14 @@ const orderSchema = moongose.Schema({
         type: Number,
         require: true
     },
+    shippingFee: {
+        type: Number,
+        require: true
+    },    
+    subTotal: {
+        type: Number,
+        require: true
+    },    
     status: {
         type: String,
         require: true
@@ -23,14 +31,16 @@ const orderSchema = moongose.Schema({
         type: String,
         require: true
     },
-    companyName: {
-        type: String,
-        require: true
-    },
     apartment: {
         type: String,
     },
-    city: {
+    provinceId: {
+        type: String,
+    },
+    districtId: {
+        type: String,
+    },
+    wardId: {
         type: String,
     },
     phoneNumber: {
@@ -42,6 +52,11 @@ const orderSchema = moongose.Schema({
     orderDate: {
         type: Date,
     },
+    shopId: {
+        type: mongoose.Schema.ObjectId,
+        require: true,
+        ref:'shops'
+    }
 });
 
 const orderModel = mongoose.model("orders", orderSchema);

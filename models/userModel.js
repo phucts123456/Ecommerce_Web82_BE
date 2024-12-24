@@ -29,6 +29,11 @@ const userSchema = moongose.Schema({
     isDelete: {
         type: Boolean,
         require: true
+    },
+    shopId: {
+        type: mongoose.Types.ObjectId,
+        ref: 'shops',
+        require: true
     }
 });
 

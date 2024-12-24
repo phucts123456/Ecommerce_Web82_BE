@@ -9,11 +9,7 @@ router.get("/api/v1/products/checkStock", (req, res) => productController.checkP
 router.get("/api/v1/products/:id", (req, res) => productController.getDetail(req, res));
 router.post(
     '/api/v1/products',  
-    upload.fields([{
-        name: 'file', maxCount: 1
-        }, {
-        name: 'variationFiles', 
-        }]),
+    upload.any(),
     (req, res) => productController.createProduct(req, res));
 router.put('/api/v1/products/:id',
     upload.any(),

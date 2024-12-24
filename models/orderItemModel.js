@@ -11,6 +11,11 @@ const orderItemSchema = moongose.Schema({
         ref : 'products',
         require: true
     },
+    variationId: {
+        type: mongoose.Types.ObjectId,
+        ref : 'productVariations',
+        require: true
+    },
     price: {
         type: Number,
         require: true
