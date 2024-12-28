@@ -15,5 +15,6 @@ router.put('/api/v1/products/:id',
     upload.any(),
     (req, res) => productController.updateProduct(req, res));
 router.get("/api/v1/products/get-variation/:productId", (req, res) => productController.getProductVariation(req, res));
+router.get("/api/v1/products/shop/:sid", (req, res) => productController.getProductByShop(req, res));
 
 module.exports = router;

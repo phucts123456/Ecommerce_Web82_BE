@@ -8,6 +8,7 @@ const orderRouter = require("./order");
 const shippingRouter = require("./shipping");
 const shopRouter = require("./shop");
 const productStockRouter = require("./productStock");
+const vnpayRouter = require("./payment/paymentVnpay");
 router.use(userRouter);
 router.use(productRouter);
 router.use(roleRouter);
@@ -16,6 +17,6 @@ router.use(rattingRouter);
 router.use(orderRouter);
 router.use(shippingRouter);
 router.use(shopRouter);
-router.use(productStockRouter);
+router.use(vnpayRouter);
 
 module.exports = router;

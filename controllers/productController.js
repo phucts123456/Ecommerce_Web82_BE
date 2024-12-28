@@ -8,6 +8,7 @@ const { default: mongoose } = require("mongoose");
 const getProduct = async (req, res) => {
   const pageNumber = req.query.pn;
   const searchKey = req.query.sk;
+  const shopId = req.query.sid;
   const category = req.query.category;
   const limit = req.query.limit
   const pageSize = limit ? limit : constants.CONST_PRODUCT_PER_PAGE;
@@ -15,6 +16,9 @@ const getProduct = async (req, res) => {
   let searchModel = searchKey !== '' &&  searchKey !== undefined
       ? {name: { $regex: '.*' + searchKey + '.*' }} 
       : {}
+  if (shopId) searchModel.shopId = shopId;
+  console.log("shopId")    
+  console.log(searchModel)    
   if (category) {
       const isExistCategory = await categoryModel.findOne({name: category}).exec();
       if(isExistCategory) {
@@ -22,7 +26,7 @@ const getProduct = async (req, res) => {
       }    
   }
   let total = await productModel.countDocuments();
-  let totalItems = await productModel.find(searchModel).skip(skip).limit(pageSize).populate("categoryId").populate("rate").exec();
+  let totalItems = await productModel.find(searchModel).skip(skip).limit(pageSize).populate("categoryId").populate("shopId").populate("rate").exec();
 
   const totalPage = Math.ceil(total / pageSize);
   const data = {
@@ -278,6 +282,7 @@ const updateVariation = async (reqFile, fileArray, variations, pId) => {
     }
   }
 }
+
 // Xóa sản phẩm
 const deleteProduct = async (req, res) => {
   try {
@@ -339,6 +344,36 @@ const getProductVariation = async (req, res) => {
   }
 };
 
+const getProductByShop = async (req, res) => {
+  try {
+    const sk = req.query.sk;
+    console.log('sk')
+    console.log(sk)
+    const sid = req.params.sid;
+    let searchModel = sk
+    ? {name: { $regex: '.*' + sk + '.*' },shopId: sid} 
+    : {shopId: sid}
+    console.log("searchModel")
+    console.log(searchModel)
+    const products = await productModel.find(searchModel).exec();
+    if (products.length === 0) {
+      return res.status(400).json({ message: "No product founded." });
+    }
+
+    res.status(200).json({
+      message: "Get product success.",
+      data: products
+    });
+  } catch (error) {
+    res
+    .status(500)
+    .json({
+      message: "Get product fail.",
+      error: error.message,
+    });
+  }
+};
+
 
 
 // Xuất các hàm xử lý để sử dụng trong router
@@ -351,5 +386,6 @@ module.exports = {
   updateProduct,
   deleteProduct,
   checkProductStock,
-  getProductVariation
+  getProductVariation,
+  getProductByShop
 };
